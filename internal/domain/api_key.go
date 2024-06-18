@@ -10,6 +10,16 @@ type ApiKey struct {
 	expiresAt *time.Time
 }
 
+func NewApiKey(name string, envType EnvType, expiresAt *time.Time) (*ApiKey, error) {
+	return &ApiKey{
+		id:        NewID(),
+		name:      name,
+		key:       "sk_",
+		createAt:  time.Now().UTC(),
+		expiresAt: expiresAt,
+	}, nil
+}
+
 func (a *ApiKey) Id() ID {
 	return a.id
 }
