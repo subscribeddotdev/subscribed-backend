@@ -6,18 +6,18 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message"
 	events "github.com/subscribeddotdev/subscribed-backend/events/go"
 	"github.com/subscribeddotdev/subscribed-backend/internal/app/command"
+	"github.com/subscribeddotdev/subscribed-backend/internal/common/eventdriven"
 	"github.com/subscribeddotdev/subscribed-backend/internal/domain"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type Publisher struct {
-	eventPublisher message.Publisher
+	eventPublisher *eventdriven.Publisher
 }
 
-func NewPublisher(publisher message.Publisher) (*Publisher, error) {
+func NewPublisher(publisher *eventdriven.Publisher) (*Publisher, error) {
 	return &Publisher{
 		eventPublisher: publisher,
 	}, nil
@@ -41,7 +41,7 @@ func (p Publisher) PublishMessageSent(ctx context.Context, e command.MessageSent
 		return fmt.Errorf("error to marshall event %s due to: %v", command.MessageSentEvent, err)
 	}
 
-	err = p.eventPublisher.Publish(command.MessageSentEvent, &message.Message{
+	err = p.eventPublisher.Publish(command.MessageSentEvent, &eventdriven.Event{
 		Payload: payload,
 	})
 	if err != nil {

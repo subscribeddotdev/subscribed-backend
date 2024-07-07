@@ -16,6 +16,7 @@ import (
 	"github.com/ThreeDotsLabs/watermill/message/router/plugin"
 	"github.com/kelseyhightower/envconfig"
 	_ "github.com/lib/pq"
+	"github.com/subscribeddotdev/subscribed-backend/internal/common/eventdriven"
 	"github.com/subscribeddotdev/subscribed-backend/internal/common/messaging"
 	svix "github.com/svix/svix-webhooks/go"
 	"golang.org/x/sync/errgroup"
@@ -91,12 +92,23 @@ func run(logger *logs.Logger) error {
 	}
 	defer func() { _ = publisher.Close() }()
 
-	subscriber, err := amqp.NewSubscriber(amqp.NewDurableQueueConfig(config.AmqpURL), watermillLogger)
+	subscriber, err := amqp.NewSubscriber(amqp.NewDurablePubSubConfig(config.AmqpURL, amqp.GenerateQueueNameTopicName), watermillLogger)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = subscriber.Close() }()
-	eventPublisher, err := events.NewPublisher(publisher)
+
+	pubsub, err := eventdriven.NewPubSub(config.AmqpURL)
+	if err != nil {
+		return err
+	}
+
+	pubsubpublisher, err := pubsub.NewPublisher()
+	if err != nil {
+		return err
+	}
+
+	eventPublisher, err := events.NewPublisher(pubsubpublisher)
 	if err != nil {
 		return err
 	}
@@ -185,7 +197,7 @@ func run(logger *logs.Logger) error {
 	})
 
 	g.Go(func() error {
-		return router.Run(ctx)
+		return pubsub.Run(ctx)
 	})
 
 	// Gracefully termination of services
